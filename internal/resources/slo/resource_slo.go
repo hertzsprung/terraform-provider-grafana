@@ -42,6 +42,26 @@ Resource manages Grafana SLOs.
 				Description:  `Description is a free-text field that can provide more context to an SLO.`,
 				ValidateFunc: validation.StringLenBetween(0, 1024),
 			},
+			"destinationdatasource": &schema.Schema{
+				Type:        schema.TypeList,
+				MaxItems:    1,
+				Optional:    true,
+				Description: `DestinationDatasource`,
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"uid": &schema.Schema{
+							Type:        schema.TypeString,
+							Description: `datasourceUid`,
+							Optional:    true,
+						},
+						"type": &schema.Schema{
+							Type:        schema.TypeString,
+							Description: `datasourceType`,
+							Optional:    true,
+						},
+					},
+				},
+			},
 			"query": &schema.Schema{
 				Type:        schema.TypeList,
 				Required:    true,
@@ -327,7 +347,7 @@ func packSloResource(d *schema.ResourceData) (gapi.Slo, error) {
 	}
 
 	slo := gapi.Slo{
-		UUID:        d.Id(),
+		Uuid:        d.Id(),
 		Name:        tfname,
 		Description: tfdescription,
 		Objectives:  tfobjective,
