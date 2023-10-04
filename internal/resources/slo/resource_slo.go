@@ -326,12 +326,14 @@ func resourceSloDelete(ctx context.Context, d *schema.ResourceData, m interface{
 // to a Slo so that it can be converted to JSON and sent to the API
 func packSloResource(d *schema.ResourceData) (gapi.Slo, error) {
 	var (
-		tfalerting gapi.Alerting
-		tflabels   []gapi.Label
+		tfalerting              gapi.Alerting
+		tfdestinationdatasource gapi.DestinationDatasource
+		tflabels                []gapi.Label
 	)
 
 	tfname := d.Get("name").(string)
 	tfdescription := d.Get("description").(string)
+
 	query := d.Get("query").([]interface{})[0].(map[string]interface{})
 	tfquery, err := packQuery(query)
 	if err != nil {
@@ -347,13 +349,14 @@ func packSloResource(d *schema.ResourceData) (gapi.Slo, error) {
 	}
 
 	slo := gapi.Slo{
-		Uuid:        d.Id(),
-		Name:        tfname,
-		Description: tfdescription,
-		Objectives:  tfobjective,
-		Query:       tfquery,
-		Alerting:    nil,
-		Labels:      tflabels,
+		Uuid:                  d.Id(),
+		Name:                  tfname,
+		Description:           tfdescription,
+		Objectives:            tfobjective,
+		Query:                 tfquery,
+		Alerting:              nil,
+		Labels:                tflabels,
+		DestinationDatasource: nil,
 	}
 
 	if alerting, ok := d.GetOk("alerting"); ok {
@@ -369,7 +372,37 @@ func packSloResource(d *schema.ResourceData) (gapi.Slo, error) {
 		slo.Alerting = &tfalerting
 	}
 
+	if rawdestinationdatasource, ok := d.GetOk("destinationdatasource"); ok {
+		destinationDatasourceData := rawdestinationdatasource.([]interface{})
+
+		// if the Alerting field is an empty block, alertData[0] has a value of nil
+		if destinationDatasourceData[0] != nil {
+			// only pack the Alerting TF fields if the user populates the Alerting field with blocks
+			destinationdatasource := destinationDatasourceData[0].(map[string]interface{})
+			tfdestinationdatasource, _ = packDestinationDatasource(destinationdatasource)
+		}
+
+		slo.DestinationDatasource = &tfdestinationdatasource
+	}
+
 	return slo, nil
+}
+
+func packDestinationDatasource(destinationdatasource map[string]interface{}) (gapi.DestinationDatasource, error) {
+	packedDestinationDatasource := gapi.DestinationDatasource{}
+
+	if destinationdatasource["type"].(string) != "" {
+		datasourceType := destinationdatasource["type"].(string)
+		packedDestinationDatasource.Type = &datasourceType
+	}
+
+	if destinationdatasource["uid"].(string) != "" {
+		datasourceUid := destinationdatasource["uid"].(string)
+		packedDestinationDatasource.Uid = &datasourceUid
+	}
+
+	return packedDestinationDatasource, nil
+
 }
 
 func packQuery(query map[string]interface{}) (gapi.Query, error) {
@@ -499,6 +532,9 @@ func setTerraformState(d *schema.ResourceData, slo gapi.Slo) {
 
 	d.Set("query", unpackQuery(slo.Query))
 
+	retDestinationDatasource := unpackDestinationDatasource(slo.DestinationDatasource)
+	d.Set("destinationdatasource", retDestinationDatasource)
+
 	retLabels := unpackLabels(&slo.Labels)
 	d.Set("label", retLabels)
 
@@ -507,4 +543,5 @@ func setTerraformState(d *schema.ResourceData, slo gapi.Slo) {
 
 	retAlerting := unpackAlerting(slo.Alerting)
 	d.Set("alerting", retAlerting)
+
 }
