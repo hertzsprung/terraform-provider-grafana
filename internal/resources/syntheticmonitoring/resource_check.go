@@ -463,6 +463,56 @@ var (
 		},
 	}
 
+	syntheticMonitoringMultiHTTPRequestHeader = &schema.Resource{
+		Schema: map[string]*schema.Schema{
+			"name": {
+				Description: "Name of the header to send",
+				Type:        schema.TypeString,
+				Required:    true,
+			},
+			"value": {
+				Description: "Value of the header to send",
+				Type:        schema.TypeString,
+				Required:    true,
+			},
+		},
+	}
+
+	syntheticMonitoringMultiHttpRequestQueryField = &schema.Resource{
+		Schema: map[string]*schema.Schema{
+			"name": {
+				Description: "Name of the query field to send",
+				Type:        schema.TypeString,
+				Required:    true,
+			},
+			"value": {
+				Description: "Value of the query field to send",
+				Type:        schema.TypeString,
+				Required:    true,
+			},
+		},
+	}
+
+	syntheticMonitoringMultiHTTPRequestBody = &schema.Resource{
+		Schema: map[string]*schema.Schema{
+			"content_type": {
+				Description: "The content type of the body",
+				Type:        schema.TypeString,
+				Optional:    true,
+			},
+			"content_encoding": {
+				Description: "The content encoding of the body",
+				Type:        schema.TypeString,
+				Optional:    true,
+			},
+			"payload": {
+				Description: "The body payload",
+				Type:        schema.TypeString,
+				Optional:    true,
+			},
+		},
+	}
+
 	syntheticMonitoringMultiHTTPRequest = &schema.Schema{
 		Description: "An individual MultiHTTP request",
 		Type:        schema.TypeSet,
@@ -484,63 +534,19 @@ var (
 					Description: "The headers to send with the request",
 					Type:        schema.TypeSet,
 					Optional:    true,
-					Elem: &schema.Resource{
-						Schema: map[string]*schema.Schema{
-							"name": {
-								Description: "Name of the header to send",
-								Type:        schema.TypeString,
-								Required:    true,
-							},
-							"value": {
-								Description: "Value of the header to send",
-								Type:        schema.TypeString,
-								Required:    true,
-							},
-						},
-					},
+					Elem:        syntheticMonitoringMultiHTTPRequestHeader,
 				},
 				"query_fields": {
 					Description: "Query fields to send with the request",
 					Type:        schema.TypeSet,
 					Optional:    true,
-					Elem: &schema.Resource{
-						Schema: map[string]*schema.Schema{
-							"name": {
-								Description: "Name of the query field to send",
-								Type:        schema.TypeString,
-								Required:    true,
-							},
-							"value": {
-								Description: "Value of the query field to send",
-								Type:        schema.TypeString,
-								Required:    true,
-							},
-						},
-					},
+					Elem:        syntheticMonitoringMultiHttpRequestQueryField,
 				},
 				"body": {
 					Description: "The body of the HTTP request used in probe.",
 					Type:        schema.TypeSet,
 					Optional:    true,
-					Elem: &schema.Resource{
-						Schema: map[string]*schema.Schema{
-							"content_type": {
-								Description: "The content type of the body",
-								Type:        schema.TypeString,
-								Optional:    true,
-							},
-							"content_encoding": {
-								Description: "The content encoding of the body",
-								Type:        schema.TypeString,
-								Optional:    true,
-							},
-							"payload": {
-								Description: "The body payload",
-								Type:        schema.TypeString,
-								Optional:    true,
-							},
-						},
-					},
+					Elem:        syntheticMonitoringMultiHTTPRequestBody,
 				},
 			},
 		},
@@ -946,41 +952,50 @@ func ResourceCheckRead(ctx context.Context, d *schema.ResourceData, meta interfa
 				"url":    e.Request.Url,
 			}
 			if len(e.Request.Headers) > 0 {
-				headers := []interface{}{}
+				headerSet := schema.NewSet(
+					schema.HashResource(syntheticMonitoringMultiHTTPRequestHeader),
+					[]interface{}{},
+				)
 				for _, h := range e.Request.Headers {
-					headers = append(headers, map[string]interface{}{
+					headerSet.Add(map[string]interface{}{
 						"name":  h.Name,
 						"value": h.Value,
 					})
 				}
-				request["headers"] = headers
+				request["headers"] = headerSet
 			}
 			if len(e.Request.QueryFields) > 0 {
-				queryFields := []interface{}{}
+				querySet := schema.NewSet(
+					schema.HashResource(syntheticMonitoringMultiHttpRequestQueryField),
+					[]interface{}{},
+				)
 				for _, q := range e.Request.QueryFields {
-					queryFields = append(queryFields, map[string]interface{}{
+					querySet.Add(map[string]interface{}{
 						"name":  q.Name,
 						"value": q.Value,
 					})
 				}
-				request["query_fields"] = queryFields
+				request["query_fields"] = querySet
 			}
 			if e.Request.Body != nil {
-				body := []interface{}{}
-				body = append(body, map[string]interface{}{
+				bodySet := schema.NewSet(
+					schema.HashResource(syntheticMonitoringMultiHTTPRequestBody),
+					[]interface{}{},
+				)
+				bodySet.Add(map[string]interface{}{
 					"content_type":     e.Request.Body.ContentType,
 					"content_encoding": e.Request.Body.ContentEncoding,
-					"payload":          e.Request.Body.Payload,
+					"payload":          string(e.Request.Body.Payload),
 				})
-				request["body"] = body
+				request["body"] = bodySet
 			}
 			requestSet.Add(request)
 			checks := []interface{}{}
 			for _, c := range e.Assertions {
 				checks = append(checks, map[string]interface{}{
-					"type":       c.Type.String(),
-					"subject":    c.Subject.String(),
-					"condition":  c.Condition.String(),
+					"type":       int(c.Type),
+					"subject":    int(c.Subject),
+					"condition":  int(c.Condition),
 					"expression": c.Expression,
 					"value":      c.Value,
 				})
@@ -988,7 +1003,7 @@ func ResourceCheckRead(ctx context.Context, d *schema.ResourceData, meta interfa
 			variables := []interface{}{}
 			for _, v := range e.Variables {
 				variables = append(variables, map[string]interface{}{
-					"type":       v.Type.String(),
+					"type":       int(v.Type),
 					"name":       v.Name,
 					"expression": v.Expression,
 					"attribute":  v.Attribute,
