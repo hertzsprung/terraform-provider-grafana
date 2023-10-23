@@ -3,7 +3,7 @@ resource "grafana_synthetic_monitoring_check" "multihttp" {
   target  = "https://www.an_auth_endpoint.com"
   enabled = false
   probes = [
-    data.grafana_synthetic_monitoring_probes.main.probes.Atlanta,
+    data.grafana_synthetic_monitoring_probes.main.probes.London,
   ]
   labels = {
     foo = "bar"
