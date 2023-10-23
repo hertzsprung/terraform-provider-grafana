@@ -1120,9 +1120,9 @@ func makeMultiHTTPSettings(settings map[string]interface{}, cs *sm.CheckSettings
 				}
 			}
 
-			if request["queryFields"] != nil && len(request["queryFields"].(*schema.Set).List()) > 0 {
+			if request["query_fields"] != nil && len(request["query_fields"].(*schema.Set).List()) > 0 {
 				e.Request.QueryFields = make([]*sm.QueryField, 0)
-				for _, queryField := range request["queryFields"].(*schema.Set).List() {
+				for _, queryField := range request["query_fields"].(*schema.Set).List() {
 					queryField := sm.QueryField{
 						Name:  queryField.(map[string]interface{})["name"].(string),
 						Value: queryField.(map[string]interface{})["value"].(string),
