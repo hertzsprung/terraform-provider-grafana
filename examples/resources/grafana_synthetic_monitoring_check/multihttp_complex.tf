@@ -1,3 +1,5 @@
+data "grafana_synthetic_monitoring_probes" "main" {}
+
 resource "grafana_synthetic_monitoring_check" "multihttp" {
   job     = "multihttp complex"
   target  = "https://www.an_auth_endpoint.com"
