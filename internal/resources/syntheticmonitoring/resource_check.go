@@ -478,7 +478,7 @@ var (
 		},
 	}
 
-	syntheticMonitoringMultiHttpRequestQueryField = &schema.Resource{
+	syntheticMonitoringMultiHTTPRequestQueryField = &schema.Resource{
 		Schema: map[string]*schema.Schema{
 			"name": {
 				Description: "Name of the query field to send",
@@ -540,7 +540,7 @@ var (
 					Description: "Query fields to send with the request",
 					Type:        schema.TypeSet,
 					Optional:    true,
-					Elem:        syntheticMonitoringMultiHttpRequestQueryField,
+					Elem:        syntheticMonitoringMultiHTTPRequestQueryField,
 				},
 				"body": {
 					Description: "The body of the HTTP request used in probe.",
@@ -966,7 +966,7 @@ func ResourceCheckRead(ctx context.Context, d *schema.ResourceData, meta interfa
 			}
 			if len(e.Request.QueryFields) > 0 {
 				querySet := schema.NewSet(
-					schema.HashResource(syntheticMonitoringMultiHttpRequestQueryField),
+					schema.HashResource(syntheticMonitoringMultiHTTPRequestQueryField),
 					[]interface{}{},
 				)
 				for _, q := range e.Request.QueryFields {
